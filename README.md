@@ -34,6 +34,13 @@ CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inv
 cat inventory/mycluster/group_vars/all/all.yml
 cat inventory/mycluster/group_vars/k8s_cluster/k8s-cluster.yml
 
+# Clean up old Kubernete cluster with Ansible Playbook - run the playbook as root
+# The option `--become` is required, as for example cleaning up SSL keys in /etc/,
+# uninstalling old packages and interacting with various systemd daemons.
+# Without --become the playbook will fail to run!
+# And be mind it will remove the current kubernetes cluster (if it's running)!
+ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root reset.yml
+
 # Deploy Kubespray with Ansible Playbook - run the playbook as root
 # The option `--become` is required, as for example writing SSL keys in /etc/,
 # installing packages and interacting with various systemd daemons.
@@ -68,14 +75,18 @@ You will then need to use [bind mounts](https://docs.docker.com/storage/bind-mou
 to access the inventory and SSH key in the container, like this:
 
 ```ShellSession
-git checkout v2.21.0
-docker pull quay.io/kubespray/kubespray:v2.21.0
+git checkout v2.22.0
+docker pull quay.io/kubespray/kubespray:v2.22.0
 docker run --rm -it --mount type=bind,source="$(pwd)"/inventory/sample,dst=/inventory \
   --mount type=bind,source="${HOME}"/.ssh/id_rsa,dst=/root/.ssh/id_rsa \
-  quay.io/kubespray/kubespray:v2.21.0 bash
+  quay.io/kubespray/kubespray:v2.22.0 bash
 # Inside the container you may now run the kubespray playbooks:
 ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa cluster.yml
 ```
+
+#### Collection
+
+See [here](docs/ansible_collection.md) if you wish to use this repository as an Ansible collection
 
 ### Vagrant
 
@@ -131,7 +142,7 @@ vagrant up
 ## Supported Linux Distributions
 
 - **Flatcar Container Linux by Kinvolk**
-- **Debian** Bullseye, Buster, Jessie, Stretch
+- **Debian** Bullseye, Buster
 - **Ubuntu** 16.04, 18.04, 20.04, 22.04
 - **CentOS/RHEL** 7, [8, 9](docs/centos.md#centos-8)
 - **Fedora** 35, 36
@@ -150,30 +161,29 @@ Note: Upstart/SysV init based OS types are not supported.
 ## Supported Components
 
 - Core
-  - [kubernetes](https://github.com/kubernetes/kubernetes) v1.26.2
+  - [kubernetes](https://github.com/kubernetes/kubernetes) v1.26.5
   - [etcd](https://github.com/etcd-io/etcd) v3.5.6
   - [docker](https://www.docker.com/) v20.10 (see note)
-  - [containerd](https://containerd.io/) v1.7.0
+  - [containerd](https://containerd.io/) v1.7.1
   - [cri-o](http://cri-o.io/) v1.24 (experimental: see [CRI-O Note](docs/cri-o.md). Only on fedora, ubuntu and centos based OS)
 - Network Plugin
   - [cni-plugins](https://github.com/containernetworking/plugins) v1.2.0
-  - [calico](https://github.com/projectcalico/calico) v3.25.0
-  - [canal](https://github.com/projectcalico/canal) (given calico/flannel versions)
-  - [cilium](https://github.com/cilium/cilium) v1.12.1
-  - [flannel](https://github.com/flannel-io/flannel) v0.20.2
+  - [calico](https://github.com/projectcalico/calico) v3.25.1
+  - [cilium](https://github.com/cilium/cilium) v1.13.0
+  - [flannel](https://github.com/flannel-io/flannel) v0.21.4
   - [kube-ovn](https://github.com/alauda/kube-ovn) v1.10.7
   - [kube-router](https://github.com/cloudnativelabs/kube-router) v1.5.1
   - [multus](https://github.com/k8snetworkplumbingwg/multus-cni) v3.8
   - [weave](https://github.com/weaveworks/weave) v2.8.1
-  - [kube-vip](https://github.com/kube-vip/kube-vip) v0.5.11
+  - [kube-vip](https://github.com/kube-vip/kube-vip) v0.5.12
 - Application
-  - [cert-manager](https://github.com/jetstack/cert-manager) v1.11.0
+  - [cert-manager](https://github.com/jetstack/cert-manager) v1.11.1
   - [coredns](https://github.com/coredns/coredns) v1.9.3
-  - [ingress-nginx](https://github.com/kubernetes/ingress-nginx) v1.6.4
+  - [ingress-nginx](https://github.com/kubernetes/ingress-nginx) v1.7.1
   - [krew](https://github.com/kubernetes-sigs/krew) v0.4.3
-  - [argocd](https://argoproj.github.io/) v2.6.3
-  - [helm](https://helm.sh/) v3.11.1
-  - [metallb](https://metallb.universe.tf/)  v0.12.1
+  - [argocd](https://argoproj.github.io/) v2.7.2
+  - [helm](https://helm.sh/) v3.12.0
+  - [metallb](https://metallb.universe.tf/)  v0.13.9
   - [registry](https://github.com/distribution/distribution) v2.8.1
 - Storage Plugin
   - [cephfs-provisioner](https://github.com/kubernetes-incubator/external-storage) v2.1.0-k8s1.11
@@ -222,8 +232,6 @@ You can choose among ten network plugins. (default: `calico`, except Vagrant use
     and overlay networks, with or without BGP. Calico uses the same engine to enforce network policy for hosts,
     pods, and (if using Istio and Envoy) applications at the service mesh layer.
 
-- [canal](https://github.com/projectcalico/canal): a composition of calico and flannel plugins.
-
 - [cilium](http://docs.cilium.io/en/latest/): layer 3/4 networking (as well as layer 7 to protect and secure application protocols), supports dynamic insertion of BPF bytecode into the Linux kernel to implement security services, networking and visibility logic.
 
 - [weave](docs/weave.md): Weave is a lightweight container overlay network that doesn't require an external K/V database cluster.
@@ -268,7 +276,7 @@ See also [Network checker](docs/netcheck.md).
 
 ## CI Tests
 
-[![Build graphs](https://gitlab.com/kargo-ci/kubernetes-sigs-kubespray/badges/master/pipeline.svg)](https://gitlab.com/kargo-ci/kubernetes-sigs-kubespray/pipelines)
+[![Build graphs](https://gitlab.com/kargo-ci/kubernetes-sigs-kubespray/badges/master/pipeline.svg)](https://gitlab.com/kargo-ci/kubernetes-sigs-kubespray/-/pipelines)
 
 CI/end-to-end tests sponsored by: [CNCF](https://cncf.io), [Equinix Metal](https://metal.equinix.com/), [OVHcloud](https://www.ovhcloud.com/), [ELASTX](https://elastx.se/).
 

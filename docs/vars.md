@@ -199,9 +199,9 @@ Stack](https://github.com/kubernetes-sigs/kubespray/blob/master/docs/dns-stack.m
 
 * *kubelet_rotate_server_certificates* - Auto rotate the kubelet server certificates by requesting new certificates
   from the kube-apiserver when the certificate expiration approaches.
-  **Note** that server certificates are **not** approved automatically. Approve them manually
-  (`kubectl get csr`, `kubectl certificate approve`) or implement custom approving controller like
-  [kubelet-rubber-stamp](https://github.com/kontena/kubelet-rubber-stamp).
+  Note that enabling this also activates *kubelet_csr_approver* which approves automatically the CSRs.
+  To customize its behavior, you can override the Helm values via *kubelet_csr_approver_values*.
+  See [kubelet-csr-approver](https://github.com/postfinance/kubelet-csr-approver) for more information.
 
 * *kubelet_streaming_connection_idle_timeout* - Set the maximum time a streaming connection can be idle before the connection is automatically closed.
 
@@ -252,7 +252,7 @@ node_taints:
   The auditing parameters can be tuned via the following variables (which default values are shown below):
   * `audit_log_path`: /var/log/audit/kube-apiserver-audit.log
   * `audit_log_maxage`: 30
-  * `audit_log_maxbackups`: 1
+  * `audit_log_maxbackups`: 10
   * `audit_log_maxsize`: 100
   * `audit_policy_file`: "{{ kube_config_dir }}/audit-policy/apiserver-audit-policy.yaml"
 
