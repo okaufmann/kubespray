@@ -60,7 +60,7 @@ spec:
           - mountPath: /var/lib/hubble-relay/tls
             name: tls
             readOnly: true
-          {% endif %}
+          {%- endif %}
 
       restartPolicy: Always
       serviceAccount: hubble-relay
@@ -97,7 +97,7 @@ spec:
                 - key: tls.key
                   path: server.key
         name: tls
-      {% endif %}
+      {%- endif %}
 
 ---
 # Source: cilium/templates/hubble-ui/deployment.yaml
